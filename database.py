@@ -2,7 +2,7 @@ import psycopg2
 from config import DATABASE_URL
 
 class Database:
-    def __init__(self):
+    def init(self):
         self.conn = None
 
     def connect(self):
@@ -14,9 +14,15 @@ class Database:
     def save_result(self, result):
         with self.conn:
             with self.conn.cursor() as cur:
-                assert isinstance(cur, result)
-                cur.execute('''INSERT INTO results (user_id, matched_user_id))
-                            VALUES (%s, %s)", result ''')
+                assert isinstance(result, tuple)
+                cur.execute('''INSERT INTO results (user_id, matched_user_id)
+                            VALUES (%s, %s)''', result)
+
+    def check_result(self):
+        with self.conn:
+            with self.conn.cursor() as cur:
+                cur.execute('SELECT * FROM results')
+                return cur.fetchall()
 
     def close(self):
         if self.conn is not None:
