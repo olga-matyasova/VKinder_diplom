@@ -2,6 +2,7 @@ import vk_api
 from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.exceptions import ApiError
 from vk_api.utils import get_random_id
+from datetime import datetime
 
 from config import group_token, access_token
 from vk_tools import VkTools
@@ -92,8 +93,8 @@ class VkinderBot:
                                              random_id=0)
 
                             self.vk_tools.get_photos(matched_user_id)
-                            self.send_photos(user_id, matched_user_id)
-                            if user_id not in database:
+                            self.send_photos(user_id, photos)
+                            if not database.check_result(user_id, matched_user_id):
                                 database.save_result((user_id, matched_user_id))
                             else:
                                 pass
