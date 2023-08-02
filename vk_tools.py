@@ -1,4 +1,6 @@
 import pprint
+import profile
+
 import vk_api
 from vk_api.exceptions import ApiError
 from datetime import datetime
@@ -13,7 +15,9 @@ class VkTools:
 
     def get_user_info(self, user_id):
         try:
-            user_info, = self.vk.method('users.get', {'user_id':user_id, 'fields':'bdate,sex,city,relation'})
+            user_info, = self.vk.users.get(
+                user_id=user_id,
+                fields='bdate,sex,city,relation')
         except ApiError as e:
             user_info = {}
             print('Ошибка при получении информации о пользователе: ', e)
@@ -36,20 +40,20 @@ class VkTools:
             city = criteria['city']
             current_year = datetime.now().year
             user_year = int(criteria['bdate'].split('.')[2])
-            age = current_year - user_year
-            age_from = age - 5
-            age_to = age + 5
+            age = current_year - user_year if user_year and 'bdate' in criteria else None
+            age_from = age - 5 if age else None
+            age_to = age + 5 if age else None
 
-            users = self.vk.method('users.search', {
-                'count': 50,
-                'offset': offset,
-                'sex': sex,
-                'city': city,
-                'age_from': age_from,
-                'age_to': age_to,
-                'status': 6,
-                'is_closed': False
-            })
+            users = self.vk.users.search(
+                count=50,
+                offset=offset,
+                sex=sex,
+                city=city,
+                age_from=age_from,
+                age_to=age_to,
+                status=6,
+                is_closed=False
+            )
 
             users = users['items']
         except KeyError as e:
@@ -58,10 +62,10 @@ class VkTools:
         except ApiError as e:
             print(f'Ошибка API VK: {e}')
             return []
-
         result = []
+
         for user in users:
-            if not user['is_closed']:
+            if user.get('is_closed') is not True:
                 result.append({
                     'id': user['id'],
                     'name': user['first_name'] + ' ' + user['last_name']
@@ -71,7 +75,9 @@ class VkTools:
 
     def get_photos(self, user_id):
         try:
-            photos = self.vk.method('photos.get', {'user_id': user_id, 'album_id': 'profile', 'extended': 1})
+            photos = self.vk.photos.get(user_id=user_id,
+                                        album_id=profile,
+                                        extended=1)
         except ApiError as e:
             print(f'Ошибка API VK: {e}')
             return []
@@ -104,12 +110,15 @@ class VkTools:
 
         return result[:3]
 
-
 if __name__ =='__main__':
     user_id = 147917628
     vk_tools = VkTools(access_token)
     criteria = vk_tools.get_user_info(user_id)
     users = vk_tools.search_worksheet(criteria,50)
-    users = users.pop()
-    photos = vk_tools.get_photos(users['id'])
-    pprint(users)
+    if users:
+        user = users.pop()
+        photos = vk_tools.get_photos(user['id'])
+        pprint(user)
+        pprint(photos)
+    else:
+        print('Пользователь не найден')
