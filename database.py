@@ -2,7 +2,7 @@ import psycopg2
 from config import DATABASE_URL
 
 class Database:
-    def init(self):
+    def __init__(self):
         self.conn = None
 
     def connect(self):
@@ -10,7 +10,13 @@ class Database:
             self.conn = psycopg2.connect(DATABASE_URL)
         except (Exception, psycopg2.DatabaseError) as error:
             print(f'Ошибка подключения к базе данных: {error}')
-    create_table = '''CREATE TABLE IF NOT EXISTS results (user_id INT, matched_user_id INT); '''
+  
+    def create_table(self):
+        with self.conn:
+            with self.conn.cursor() as cur:
+                cur.execute('''CREATE TABLE IF NOT EXISTS
+                 results (user_id INT PRIMARY KEY, matched_user_id INT PRIMARY KEY UNIQUE) ''')
+
     def save_result(self, result):
         with self.conn:
             with self.conn.cursor() as cur:
