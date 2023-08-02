@@ -4,7 +4,7 @@ from vk_api.exceptions import ApiError
 from vk_api.utils import get_random_id
 from datetime import datetime
 
-from config import group_token, access_token
+from config import group_token, access_token, DATABASE_URL
 from vk_tools import VkTools
 from database import Database
 
@@ -17,21 +17,21 @@ class VkinderBot:
         self.vk_session = vk_api.VkApi(token=group_token)
         self.vk = self.vk_session.get_api()
         self.longpoll = VkLongPoll(self.vk_session)
-        self.vk_tools = VkTools(access_token)
         self.group_token = group_token
         self.access_token = access_token
         self.criteria = {}
         self.users = []
         self.offset = 0
+        self.vk_tools = VkTools(access_token)
 
     def send_message(self, user_id, message, attachments=None):
         try:
-            self.vk.method('messages.send', {
-                'user_id':user_id,
-                'message':message,
-                'attachment':attachments,
-                'random_id': get_random_id()
-            })
+            self.vk.messages.send(
+                user_id=user_id,
+                message=message,
+                attachment=attachments,
+                random_id=get_random_id()
+            )
         except ApiError as e:
             print('Ошибка при отправке сообщения: ', e)
 
@@ -42,11 +42,11 @@ class VkinderBot:
             attachment.append(photo_url)
 
         try:
-            self.vk.method('messages.send', {
-                'user_id':user_id,
-                'attachment': ','.join(attachment),
-                'random_id':get_random_id()
-            })
+            self.vk.messages.send(
+                user_id=user_id,
+                attachment=','.join(attachment),
+                random_id=get_random_id()
+            )
         except ApiError as e:
             print('Ошибка при отправке фотографии: ', e)
 
@@ -61,13 +61,6 @@ class VkinderBot:
                     self.send_message(user_id=user_id,
                                      message='Привет! Я VKinder. Отправь сообщением "поиск" для подбора второй половинки.',
                                      random_id=0)
-                    if self.criteria.get('city') is None:
-                        self.send_message(user_id=user_id, message='Укажите город (например, город Нижний Новгород)')
-                        continue
-                    elif self.criteria.get('bdate') is None:
-                        self.send_message(user_id=user_id, message='Укажите возраст (например, возраст 23)')
-                        continue
-
                 elif request.startswith('поиск'):
                     criteria = request[6:]
                     users = self.vk_tools.search_worksheet(criteria)
@@ -77,11 +70,10 @@ class VkinderBot:
 
                     if users:
                         user_ids = [str(user['id']) for user in users]
-                        matched_user_id = self.vk_tools.search_worksheet(self, criteria, offset=0)
+                        matched_user_id = self.vk_tools.search_worksheet(criteria, offset=0)
 
                         if matched_user_id:
-                            user_info = self.vk.users.get(user_ids=matched_user_id,
-                                                          fields='bdate, sex, city, relation')
+                            user_info = self.vk.users.get(user_ids=[matched_user_id], fields='bdate, sex, city, relation')
                             user = user_info[0]
                             age = datetime.now().year - int(user['bdate'].split('.')[2])
                             sex = user['sex']
@@ -89,11 +81,12 @@ class VkinderBot:
                             relation = user['relation']
 
                             self.send_message(user_id=user_id,
-                                             message=f'Наилучший вариант для тебя:\nВозраст: {age}\nПол: {sex}\nГород: {city}\nОтношения: {relation}',
-                                             random_id=0)
+                                            message=f'Наилучший вариант для тебя:\nВозраст: {age}\nПол: {sex}\nГород: {city}\nОтношения: {relation}',
+                                            random_id=0)
 
                             self.vk_tools.get_photos(matched_user_id)
                             self.send_photos(user_id, photos)
+
                             if not database.check_result(user_id, matched_user_id):
                                 database.save_result((user_id, matched_user_id))
                             else:
@@ -105,10 +98,10 @@ class VkinderBot:
 
                     else:
                         self.send_message(user_id=user_id, message='Не удалось выполнить поиск. Попробуйте снова.',
-                                     random_id=0)
+                                 random_id=0)
 
-            else:
-                self.send_message(user_id=user_id, message='Я вас не понимаю.', random_id=0)
+                else:
+                    self.send_message(user_id=user_id, message='Я вас не понимаю.', random_id=0)
 
 if __name__ == '__main__':
     VkinderBot().event_handler()
