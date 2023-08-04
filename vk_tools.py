@@ -67,6 +67,16 @@ class VKTools:
 
         return users if users else None
 
+   def get_criteria(user_id):
+       criteria = {
+           'sex': 2,
+           'city': 'Нижний Новгород',
+           'age_from': 20,
+           'age_to': 30,
+           'relationship': 1,
+       }
+       return criteria
+
     def get_top_photos(self, users):
         users_with_photos = []
         for user in users:
