@@ -11,10 +11,10 @@ class Database:
         except (Exception, psycopg2.DatabaseError) as error:
             print(f'Ошибка подключения к базе данных: {error}')
 
-    def create_table(self):
+    def create_table(self, user_info_id, item_id):
         with self.conn:
             with self.conn.cursor() as cur:
-                cur.execute('CREATE TABLE IF NOT EXISTS results (user_id INT, matched_user_id INT)')
+                cur.execute('CREATE TABLE IF NOT EXISTS results (user_info_id INT PRIMARY KEY, item_id INT PRIMARY KEY)')
 
     def save_result(self, result):
         with self.conn:
