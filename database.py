@@ -19,12 +19,12 @@ class Database:
     def save_result(self, result):
         with self.conn:
             with self.conn.cursor() as cur:
-                cur.execute('INSERT INTO results (user_id, matched_user_id) VALUES (%s, %s)', result)
+                cur.execute('INSERT INTO results (user_info_id, item_id) VALUES (%s, %s)', result)
 
-    def check_user_in_database(self, user_id, matched_user_id):
+    def check_user_id_database(self, user_info-id, item_id):
         with self.conn:
             with self.conn.cursor() as cur:
-                cur.execute('SELECT * FROM results WHERE user_id = %s AND matched_user_id = %s', (user_id, matched_user_id))
+                cur.execute('SELECT * FROM results WHERE user_info_id = %s AND item_id = %s', (user_info_id, item_id))
                 return cur.fetchone() is not None
 
     def close(self):
