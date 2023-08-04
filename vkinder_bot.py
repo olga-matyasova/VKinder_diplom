@@ -15,7 +15,7 @@ def main(database=None, longpoll=None):
     vk = vk_session.get_api() 
     vk_tools = VKTools(access_token) 
     database = Database() 
-    daatabase.connect() 
+    database.connect() 
     database.create_table() 
     longpoll = longpoll.VkLongPoll(vk_session) 
     
