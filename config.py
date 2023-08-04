@@ -1,3 +1,3 @@
-access_token = 'vk1.a._volYMROekbGyiHpXG5L7vvPInGpZkM0NExBKk3NC7RwqG1bHLaf57nIioWK0LM5RxzqNQwD6bAeQwe5dmq7ss4zIuW7lLYZgv1x9C6u7d6seEzSj2E_JwKgLOLZyYtB-szBw3LytjiCzaWJa7TWCG8XeuVYiiUsLSZ9JXuvKL8wTJUReiBWI3tGMxrNtDqXGhGf-yRjTmZn6xUglspoMw'
-group_token = 'vk1.a.oNEijqToBjJyiM2TnK0gSdQtz3vWc9u0F9m1SqZBWmWIX53j5Dxqpij9NbuFxcywcSBLDtTiW57nSKh9v2onO8wzdFMldAaBqjfqNcU-7JV6A-gJoTbPUChGyFueK8OmlZJJYhZWoPfbUqIKwhuCvBoyxqQno68-gsDQ9nINyk8Uol8UJnyVNr5j-riiCrOOIw4TMVcfOuSZiZeHoL8__g'
+access_token = ''
+group_token = ''
 DATABASE_URL = 'postgresql://postgres:1234@localhost:5432/VKinder_db'
