@@ -18,20 +18,8 @@ def main(database=None, longpoll=None):
     database.connect()
     database.create_table()
     longpoll = longpoll.VkLongPoll(vk_session)
-
-
-def get_criteria(user_id):
-    criteria = {
-        'sex': 2,
-        'city': 'Нижний Новгород',
-        'age_from': 20,
-        'age_to': 30,
-        'relationship': 1,
-    }
-    return criteria
-
-
-for event in longpoll.listen():
+    for event in longpoll.listen():
+
     if event.type == VkEventType.MESSAGE_NEW and event.to_me:
         request = event.text.lower()
         user_id = event.user_id
@@ -40,7 +28,7 @@ for event in longpoll.listen():
             vk_tools.send_message(user_id, 'Привет! Я VKinder. Отправь сообщением "поиск" для подбора второй половинки.')
 
         elif request.startswith('поиск'):
-            criteria = get_criteria(user_id)
+            criteria = vk_tools.get_criteria(user_id)
             if criteria:
                 users = vk_tools.get_users_by_criteria(criteria)
 
