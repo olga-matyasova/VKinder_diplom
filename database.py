@@ -21,7 +21,7 @@ class Database:
             with self.conn.cursor() as cur:
                 cur.execute('INSERT INTO results (user_info_id, item_id) VALUES (%s, %s)', result)
 
-    def check_user_id_database(self, user_info-id, item_id):
+    def check_user_id_database(self, user_info_id, item_id):
         with self.conn:
             with self.conn.cursor() as cur:
                 cur.execute('SELECT * FROM results WHERE user_info_id = %s AND item_id = %s', (user_info_id, item_id))
