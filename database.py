@@ -15,18 +15,18 @@ class Database:
     def create_table(self):
         with self.conn:
             with self.conn.cursor() as cur:
-                cur.execute('CREATE TABLE IF NOT EXISTS results (user_id INT, matched_user_id INT)')
+                cur.execute('CREATE TABLE IF NOT EXISTS result (user_id INT, best_match_id INT)')
 
-    def save_result(self, result):
+    def save_result(self, user_id, best_match_id):
         with self.conn:
             with self.conn.cursor() as cur:
-                cur.execute('INSERT INTO results (user_id, matched_user_id) VALUES (%s, %s)', result)
+                cur.execute('INSERT INTO result (user_id, best_match_id) VALUES (%s, %s)', (user_id, best_match_id))
 
-    def check_user_in_database(self, user_id, matched_user_id):
+    def check_user_in_database(self, user_id, best_match_id):
         with self.conn:
             with self.conn.cursor() as cur:
-                cur.execute('SELECT * FROM results WHERE user_id = %s AND matched_user_id = %s',
-                            (user_id, matched_user_id))
+                cur.execute('SELECT * FROM results WHERE user_id = %s AND best_match_id = %s',
+                            (user_id, best_match_id))
                 return cur.fetchone() is not None
 
     def close(self):
