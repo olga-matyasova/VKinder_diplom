@@ -37,7 +37,7 @@ def main():
                     if best_match:
                         top_photos = vk_tools.get_top_photos(best_match['id'])
                         vk_tools.send_result(user_id, best_match, top_photos)
-                        database.save_result(user_id, best_match['id'])
+                        database.save_results(user_id, best_match['id'])
                     else:
                         vk_tools.send_message(user_id, 'К сожалению, не удалось найти подходящих пользователей.')
                 else:
