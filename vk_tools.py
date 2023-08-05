@@ -1,13 +1,13 @@
 import vk_api
 from datetime import datetime
 from vk_api.utils import get_random_id
-from vk_api.longpoll import VkLongPoll, VkEventType
 
-from config import group_token, access_token, DATABASE_URL
+from config import access_token
 from database import Database
 
+
 class VKTools:
-    def __init__(self, access_token):
+    def __init__(self):
         self.access_token = access_token
         self.vk_session = vk_api.VkApi(token=self.access_token)
         self.vk = self.vk_session.get_api()
@@ -26,7 +26,8 @@ class VKTools:
                 return age, sex, city, relationship
         return None
 
-    def calculate_age(self, bdate):
+    @staticmethod
+    def calculate_age(bdate):
         today = datetime.now().date()
         bdate = datetime.strptime(bdate, '%d-%m-%Y').date()
         age = today.year - bdate.year
@@ -34,7 +35,15 @@ class VKTools:
             age -= 1
         return age
 
-    def get_users_by_criteria(self, criteria):
+    def get_users_by_criteria(self):
+        criteria = {
+            'sex': 2,
+            'city': 'Нижний Новгород',
+            'age_from': 20,
+            'age_to': 30,
+            'relationship': 1
+        }
+
         users = []
         count = 0
         offset = 0
@@ -43,11 +52,7 @@ class VKTools:
             response = self.vk.users.search(
                 count=50,
                 offset=offset,
-                sex=criteria['sex'],
-                city=criteria['city'],
-                age_from=criteria['min_age'],
-                age_to=criteria['max_age'],
-                status=criteria['relationship'],
+                **criteria,
                 fields='photo_id',
                 has_photo=1
             )
@@ -67,23 +72,14 @@ class VKTools:
 
         return users if users else None
 
-   def get_criteria(user_id):
-       criteria = {
-           'sex': 2,
-           'city': 'Нижний Новгород',
-           'age_from': 20,
-           'age_to': 30,
-           'relationship': 1,
-       }
-       return criteria
-
     def get_top_photos(self, users):
         users_with_photos = []
         for user in users:
             response = self.vk.photos.get(owner_id=user['id'], album_id='profile', extended=1)
             if 'items' in response:
                 photos = response['items']
-                sorted_photos = sorted(photos, key=lambda x: (x['likes']['count'] + x['comments']['count']), reverse=True)
+                sorted_photos = sorted(photos, key=lambda x: (x['likes']['count'] + x['comments']['count']),
+                                       reverse=True)
                 user['photos'] = [photo['sizes'][-1]['url'] for photo in sorted_photos[:3]]
 
             users_with_photos.append(user)
