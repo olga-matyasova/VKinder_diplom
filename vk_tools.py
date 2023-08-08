@@ -1,124 +1,106 @@
-import pprint
-import profile
-
 import vk_api
-from vk_api.exceptions import ApiError
 from datetime import datetime
 from vk_api.utils import get_random_id
-from config import access_token
 
-class VkTools:
-    def __init__(self, access_token):
+from config import access_token
+from database import Database
+
+
+class VKTools:
+    def __init__(self):
         self.access_token = access_token
         self.vk_session = vk_api.VkApi(token=self.access_token)
         self.vk = self.vk_session.get_api()
+        self.database = Database()
+        self.database.connect()
 
     def get_user_info(self, user_id):
-        try:
-            user_info, = self.vk.users.get(
-                user_id=user_id,
-                fields='bdate,sex,city,relation')
-        except ApiError as e:
-            user_info = {}
-            print('Ошибка при получении информации о пользователе: ', e)
-        result = {
-            'name': f'{user_info["first_name"]} {user_info["last_name"]}' if
-            ('first_name' in user_info) and ('last_name' in user_info) else None,
-            'sex': user_info.get('sex'),
-            'city': user_info['city']['title'] if
-            ('city' in user_info) and (user_info.get('city') is not None)
-            else None,
-            'age': datetime.now().year - int(user_info['bdate'].split('.')[2]) if
-            ('bdate' in user_info) and (user_info.get("bdate") is not None)
-            else None
+        response = self.vk.users.get(user_ids=user_id, fields='bdate,sex,city,relation')
+        if response:
+            user_info = response[0]
+            if all(key in user_info for key in ['bdate', 'sex', 'city', 'relation']):
+                age = self.calculate_age(user_info['bdate'])
+                sex = user_info['sex']
+                city = user_info['city']['title']
+                relationship = user_info['relation']
+                return age, sex, city, relationship
+        return None
+
+    @staticmethod
+    def calculate_age(bdate):
+        today = datetime.now().date()
+        bdate = datetime.strptime(bdate, '%d-%m-%Y').date()
+        age = today.year - bdate.year
+        if today.month < bdate.month or (today.month == bdate.month and today.day < bdate.day):
+            age -= 1
+        return age
+
+    def get_users_by_criteria(self):
+        criteria = {
+            'sex': 2,
+            'city': 'Нижний Новгород',
+            'age_from': 20,
+            'age_to': 30,
+            'relationship': 1
         }
-        return result
 
-    def search_worksheet(self, criteria, offset=0):
-        try:
-            sex = 1 if criteria['sex'] == 2 else 2
-            city = criteria['city']
-            current_year = datetime.now().year
-            user_year = int(criteria['bdate'].split('.')[2])
-            age = current_year - user_year if user_year and 'bdate' in criteria else None
-            age_from = age - 5 if age else None
-            age_to = age + 5 if age else None
+        users = []
+        count = 0
+        offset = 0
 
-            users = self.vk.users.search(
+        while count < 50:
+            response = self.vk.users.search(
                 count=50,
                 offset=offset,
-                sex=sex,
-                city=city,
-                age_from=age_from,
-                age_to=age_to,
-                status=6,
-                is_closed=False
+                **criteria,
+                fields='photo_id',
+                has_photo=1
             )
 
-            users = users['items']
-        except KeyError as e:
-            print(f'Ошибка при получении информации о пользователе: {e}')
-            return []
-        except ApiError as e:
-            print(f'Ошибка API VK: {e}')
-            return []
-        result = []
+            if 'items' in response:
+                for item in response['items']:
+                    user_info = self.get_user_info(item['id'])
+                    if user_info and not self.database.check_user_in_database(user_info[0], item['id']):
+                        users.append(item)
+                        count += 1
+                    if count >= 50:
+                        break
 
+                offset += 50
+            else:
+                break
+
+        return users if users else None
+
+    def get_top_photos(self, users):
+        users_with_photos = []
         for user in users:
-            if user.get('is_closed') is not True:
-                result.append({
-                    'id': user['id'],
-                    'name': user['first_name'] + ' ' + user['last_name']
-                })
+            response = self.vk.photos.get(owner_id=user['id'], album_id='profile', extended=1)
+            if 'items' in response:
+                photos = response['items']
+                sorted_photos = sorted(photos, key=lambda x: (x['likes']['count'] + x['comments']['count']),
+                                       reverse=True)
+                user['photos'] = [photo['sizes'][-1]['url'] for photo in sorted_photos[:3]]
 
-        return result
+            users_with_photos.append(user)
 
-    def get_photos(self, user_id):
-        try:
-            photos = self.vk.photos.get(user_id=user_id,
-                                        album_id=profile,
-                                        extended=1)
-        except ApiError as e:
-            print(f'Ошибка API VK: {e}')
-            return []
+        return users_with_photos
 
-        try:
-            photos = photos.get('items', [])
-        except AttributeError as e:
-            print(f'Ошибка при получении списка фотографий: {e}')
-            return []
+    def send_message(self, user_id, message):
+        self.vk.messages.send(
+            user_id=user_id,
+            message=message,
+            random_id=get_random_id()
+        )
 
-        result = []
+    def send_result(self, user_id, matched_user, photos):
+        message = f'Наилучшее совпадение:\n\n'
+        message += f'Имя: {matched_user["first_name"]}\n'
+        message += f'Фамилия: {matched_user["last_name"]}\n'
+        message += f'Ссылка на профиль: https://vk.com/id{matched_user["id"]}\n'
+        message += f'\nФотографии:\n'
 
-        for photo in photos:
-            try:
-                owner_id = photo.get('owner_id')
-                photo_id = photo.get('id')
-                likes_count = photo.get('likes', {}).get('count', 0)
-                comments_count = photo.get('comments', {}).get('count', 0)
+        for i, photo in enumerate(photos):
+            message += f'Фото {i + 1}: {photo} \n'
 
-                result.append({
-                    'owner_id': owner_id,
-                    'id': photo_id,
-                    'likes': likes_count,
-                    'comments': comments_count,
-                })
-            except KeyError as e:
-                print(f'Ошибка при обработке фотографии: {e}')
-
-        result.sort(key=lambda x: x['likes'] + x['comments'] * 10, reverse=True)
-
-        return result[:3]
-
-if __name__ =='__main__':
-    user_id = 147917628
-    vk_tools = VkTools(access_token)
-    criteria = vk_tools.get_user_info(user_id)
-    users = vk_tools.search_worksheet(criteria,50)
-    if users:
-        user = users.pop()
-        photos = vk_tools.get_photos(user['id'])
-        pprint(user)
-        pprint(photos)
-    else:
-        print('Пользователь не найден')
+        self.send_message(user_id, message)
